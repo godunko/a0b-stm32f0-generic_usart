@@ -6,6 +6,8 @@
 
 package body A0B.STM32_USART.Generic_USART is
 
+   use type A0B.Types.Unsigned_32;
+
    ------------
    -- Enable --
    ------------
@@ -28,17 +30,21 @@ package body A0B.STM32_USART.Generic_USART is
 
       --  Clear TC status flag, it has beed set by enable of TE, thus generates
       --  interrupt.
+      --
+      --  Clear IDLE status flag.
 
-      Self.Peripheral.USART_ICR := (TCCF => True, others => <>);
+      Self.Peripheral.USART_ICR :=
+        (TCCF | IDLECF => True, others => <>);
 
-      --  Enable TC interrupts.
+      --  Enable TC/IDLE interrupts.
 
       declare
          Value : A0B.Peripherals.USART.USART_CR1_Register :=
            Self.Peripheral.USART_CR1;
 
       begin
-         Value.TCIE := True;
+         Value.TCIE   := True;
+         Value.IDLEIE := True;
 
          Self.Peripheral.USART_CR1 := Value;
       end;
@@ -196,6 +202,28 @@ package body A0B.STM32_USART.Generic_USART is
    ------------------
 
    procedure On_Interrupt (Self : in out USART_Controller'Class) is
+
+      procedure Complete_DMA_Receive;
+      --  Update state of the receive buffer, shutdown DMA receive transfer,
+      --  emit callback.
+
+      --------------------------
+      -- Complete_DMA_Receive --
+      --------------------------
+
+      procedure Complete_DMA_Receive is
+      begin
+         Self.Receive_Buffer.Transferred :=
+           Self.Receive_Buffer.Length - Self.Get_DMA_Remain_Receive;
+         Self.Receive_Buffer.State       := A0B.Success;
+         Self.Receive_Buffer := null;
+
+         Self.Peripheral.USART_CR3.DMAR := False;
+         Self.Complete_DMA_Receive;
+
+         A0B.Callbacks.Emit_Once (Self.Receive_Callback);
+      end Complete_DMA_Receive;
+
       ISR  : constant A0B.Peripherals.USART.USART_ISR_Register :=
         Self.Peripheral.USART_ISR;
       CR1  : constant A0B.Peripherals.USART.USART_CR1_Register :=
@@ -203,6 +231,73 @@ package body A0B.STM32_USART.Generic_USART is
       Miss : Boolean := True;
 
    begin
+      if Self.Is_DMA_Receive_Completed then
+         Complete_DMA_Receive;
+
+         Miss := False;
+      end if;
+
+      if Self.Is_DMA_Transmit_Completed then
+         --  Transmit DMA transfer completed, update amount of sent data in
+         --  transmit buffer.
+
+         Self.Transmit_Buffer.Transferred := Self.Transmit_Buffer.Length;
+
+         --  Shutdown DMA for transmit
+
+         Self.Peripheral.USART_CR3.DMAT := False;
+         Self.Complete_DMA_Transmit;
+
+         Miss := False;
+      end if;
+
+      if ISR.RXNE and CR1.RXNEIE then
+         Self.Peripheral.USART_CR1.RXNEIE := False;
+
+         if Self.Receive_Buffer.Length = 1 then
+            --  For single byte buffer store received data immediately.
+
+            declare
+               use type A0B.Types.Unsigned_9;
+
+               Byte : A0B.Types.Unsigned_8
+                 with Import, Address => Self.Receive_Buffer.Address;
+
+            begin
+               Byte :=
+                 A0B.Types.Unsigned_8
+                   (Self.Peripheral.USART_RDR.RDR and 16#0_FF#);
+            end;
+
+            Self.Receive_Buffer.Transferred := 1;
+            Self.Receive_Buffer.State       := A0B.Success;
+            Self.Receive_Buffer := null;
+
+            A0B.Callbacks.Emit_Once (Self.Receive_Callback);
+
+         else
+            --  Initiate DMA transfer for longer trasfer.
+
+            Self.Peripheral.USART_CR3.DMAR := True;
+            Self.Initiate_DMA_Receive
+              (Self.Receive_Buffer.Address, Self.Receive_Buffer.Length);
+         end if;
+
+         Miss := False;
+      end if;
+
+      if ISR.IDLE then
+         Self.Peripheral.USART_ICR := (IDLECF => True, others => <>);
+
+         if Self.Receive_Buffer /= null
+           and Self.Is_DMA_Receive_Enabled
+         then
+            Complete_DMA_Receive;
+         end if;
+
+         Miss := False;
+      end if;
+
       if ISR.TXE and CR1.TXEIE then
          Self.Peripheral.USART_CR1.TXEIE := False;
 
@@ -218,13 +313,7 @@ package body A0B.STM32_USART.Generic_USART is
       if ISR.TC then
          Self.Peripheral.USART_ICR := (TCCF => True, others => <>);
 
-         Self.Transmit_Buffer.Transferred :=
-           Self.Transmit_Buffer.Length;
-         Self.Transmit_Buffer.State       := A0B.Success;
-
-         Self.Peripheral.USART_CR3.DMAT := False;
-         Self.Complete_DMA_Transmit;
-
+         Self.Transmit_Buffer.State := A0B.Success;
          Self.Transmit_Buffer := null;
 
          A0B.Callbacks.Emit_Once (Self.Transmit_Callback);
@@ -235,6 +324,51 @@ package body A0B.STM32_USART.Generic_USART is
       if Miss then raise Program_Error; end if;
    end On_Interrupt;
 
+   -------------
+   -- Receive --
+   -------------
+
+   procedure Receive
+     (Self     : in out USART_Controller'Class;
+      Buffer   : aliased in out Buffer_Descriptor;
+      Finished : A0B.Callbacks.Callback;
+      Success  : in out Boolean) is
+   begin
+      if not Success then
+         return;
+      end if;
+
+      if not Self.Peripheral.USART_CR1.UE
+        or Self.Receive_Buffer /= null
+      then
+         Success := False;
+
+         return;
+      end if;
+
+      if Buffer.Length = 0 then
+         Buffer.State       := A0B.Success;
+         Buffer.Transferred := 0;
+         A0B.Callbacks.Emit (Finished);
+
+         return;
+      end if;
+
+      --  Reset buffer state
+
+      Buffer.State       := A0B.Active;
+      Buffer.Transferred := 0;
+
+      --  Setup receive operation
+
+      Self.Receive_Buffer   := Buffer'Unchecked_Access;
+      Self.Receive_Callback := Finished;
+
+      --  Enable receive interrupt
+
+      Self.Peripheral.USART_CR1.RXNEIE := True;
+   end Receive;
+
    --------------
    -- Transmit --
    --------------
@@ -243,10 +377,7 @@ package body A0B.STM32_USART.Generic_USART is
      (Self     : in out USART_Controller'Class;
       Buffer   : aliased in out Buffer_Descriptor;
       Finished : A0B.Callbacks.Callback;
-      Success  : in out Boolean)
-   is
-      use type A0B.Types.Unsigned_32;
-
+      Success  : in out Boolean) is
    begin
       if not Success then
          return;
@@ -261,6 +392,8 @@ package body A0B.STM32_USART.Generic_USART is
       end if;
 
       if Buffer.Length = 0 then
+         Buffer.State       := A0B.Success;
+         Buffer.Transferred := 0;
          A0B.Callbacks.Emit (Finished);
 
          return;
@@ -270,6 +403,8 @@ package body A0B.STM32_USART.Generic_USART is
 
       Buffer.State       := A0B.Active;
       Buffer.Transferred := 0;
+
+      --  Setup transmit operation
 
       Self.Transmit_Buffer   := Buffer'Unchecked_Access;
       Self.Transmit_Callback := Finished;
