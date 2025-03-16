@@ -10,6 +10,7 @@
 
 with System;
 
+with A0B.Asynchronous_Operations;
 with A0B.Callbacks;
 with A0B.Peripherals.USART;
 with A0B.Types;
@@ -17,19 +18,6 @@ with A0B.Types;
 package A0B.STM32_USART.Generic_USART
   with Pure
 is
-
-   type Buffer_Descriptor is record
-      Address     : System.Address;
-      Length      : A0B.Types.Unsigned_32;
-      Transferred : A0B.Types.Unsigned_32;
-      State       : A0B.Operation_Status;
-   end record;
-   --  Descriptor of the transmit/receive buffer.
-   --
-   --  @component Address      Address of the first byte of the buffer memory
-   --  @component Length       Number of bytes in the buffer to be processed
-   --  @component Transferred  Number of byte transferred by the operation
-   --  @component State        State of the operation
 
    type UART_Parity is (None, Even, Odd);
 
@@ -52,13 +40,13 @@ is
 
    procedure Transmit
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out Buffer_Descriptor;
+      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean);
 
    procedure Receive
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out Buffer_Descriptor;
+      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean);
 
@@ -97,9 +85,9 @@ private
    type USART_Controller
      (Peripheral : not null access A0B.Peripherals.USART.USART_Registers)
    is abstract tagged limited record
-      Transmit_Buffer   : access Buffer_Descriptor;
+      Transmit_Buffer   : access A0B.Asynchronous_Operations.Transfer_Descriptor;
       Transmit_Callback : A0B.Callbacks.Callback;
-      Receive_Buffer    : access Buffer_Descriptor;
+      Receive_Buffer    : access A0B.Asynchronous_Operations.Transfer_Descriptor;
       Receive_Callback  : A0B.Callbacks.Callback;
    end record;
 

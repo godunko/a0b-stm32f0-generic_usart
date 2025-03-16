@@ -215,7 +215,7 @@ package body A0B.STM32_USART.Generic_USART is
       begin
          Self.Receive_Buffer.Transferred :=
            Self.Receive_Buffer.Length - Self.Get_DMA_Remain_Receive;
-         Self.Receive_Buffer.State       := A0B.Success;
+         Self.Receive_Buffer.State := A0B.Asynchronous_Operations.Success;
          Self.Receive_Buffer := null;
 
          Self.Peripheral.USART_CR3.DMAR := False;
@@ -261,7 +261,7 @@ package body A0B.STM32_USART.Generic_USART is
                use type A0B.Types.Unsigned_9;
 
                Byte : A0B.Types.Unsigned_8
-                 with Import, Address => Self.Receive_Buffer.Address;
+                 with Import, Address => Self.Receive_Buffer.Buffer;
 
             begin
                Byte :=
@@ -270,7 +270,7 @@ package body A0B.STM32_USART.Generic_USART is
             end;
 
             Self.Receive_Buffer.Transferred := 1;
-            Self.Receive_Buffer.State       := A0B.Success;
+            Self.Receive_Buffer.State := A0B.Asynchronous_Operations.Success;
             Self.Receive_Buffer := null;
 
             A0B.Callbacks.Emit_Once (Self.Receive_Callback);
@@ -280,7 +280,7 @@ package body A0B.STM32_USART.Generic_USART is
 
             Self.Peripheral.USART_CR3.DMAR := True;
             Self.Initiate_DMA_Receive
-              (Self.Receive_Buffer.Address, Self.Receive_Buffer.Length);
+              (Self.Receive_Buffer.Buffer, Self.Receive_Buffer.Length);
          end if;
 
          Miss := False;
@@ -305,7 +305,7 @@ package body A0B.STM32_USART.Generic_USART is
 
          Self.Peripheral.USART_CR3.DMAT := True;
          Self.Initiate_DMA_Transmit
-           (Self.Transmit_Buffer.Address, Self.Transmit_Buffer.Length);
+           (Self.Transmit_Buffer.Buffer, Self.Transmit_Buffer.Length);
 
          Miss := False;
       end if;
@@ -313,7 +313,7 @@ package body A0B.STM32_USART.Generic_USART is
       if ISR.TC then
          Self.Peripheral.USART_ICR := (TCCF => True, others => <>);
 
-         Self.Transmit_Buffer.State := A0B.Success;
+         Self.Transmit_Buffer.State := A0B.Asynchronous_Operations.Success;
          Self.Transmit_Buffer := null;
 
          A0B.Callbacks.Emit_Once (Self.Transmit_Callback);
@@ -330,7 +330,7 @@ package body A0B.STM32_USART.Generic_USART is
 
    procedure Receive
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out Buffer_Descriptor;
+      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean) is
    begin
@@ -347,7 +347,7 @@ package body A0B.STM32_USART.Generic_USART is
       end if;
 
       if Buffer.Length = 0 then
-         Buffer.State       := A0B.Success;
+         Buffer.State       := A0B.Asynchronous_Operations.Success;
          Buffer.Transferred := 0;
          A0B.Callbacks.Emit (Finished);
 
@@ -356,7 +356,7 @@ package body A0B.STM32_USART.Generic_USART is
 
       --  Reset buffer state
 
-      Buffer.State       := A0B.Active;
+      Buffer.State       := A0B.Asynchronous_Operations.Active;
       Buffer.Transferred := 0;
 
       --  Setup receive operation
@@ -375,7 +375,7 @@ package body A0B.STM32_USART.Generic_USART is
 
    procedure Transmit
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out Buffer_Descriptor;
+      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean) is
    begin
@@ -392,7 +392,7 @@ package body A0B.STM32_USART.Generic_USART is
       end if;
 
       if Buffer.Length = 0 then
-         Buffer.State       := A0B.Success;
+         Buffer.State       := A0B.Asynchronous_Operations.Success;
          Buffer.Transferred := 0;
          A0B.Callbacks.Emit (Finished);
 
@@ -401,7 +401,7 @@ package body A0B.STM32_USART.Generic_USART is
 
       --  Reset buffer state
 
-      Buffer.State       := A0B.Active;
+      Buffer.State       := A0B.Asynchronous_Operations.Active;
       Buffer.Transferred := 0;
 
       --  Setup transmit operation
@@ -414,7 +414,7 @@ package body A0B.STM32_USART.Generic_USART is
 
          declare
             Byte : constant A0B.Types.Unsigned_8
-              with Import, Address => Self.Transmit_Buffer.Address;
+              with Import, Address => Self.Transmit_Buffer.Buffer;
 
          begin
             Self.Peripheral.USART_TDR :=
