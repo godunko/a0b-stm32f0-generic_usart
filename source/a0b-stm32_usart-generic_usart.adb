@@ -330,7 +330,8 @@ package body A0B.STM32_USART.Generic_USART is
 
    procedure Receive
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
+      Buffer   :
+        aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor'Class;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean) is
    begin
@@ -375,7 +376,8 @@ package body A0B.STM32_USART.Generic_USART is
 
    procedure Transmit
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
+      Buffer   :
+        aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor'Class;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean) is
    begin

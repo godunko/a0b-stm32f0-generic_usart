@@ -40,13 +40,15 @@ is
 
    procedure Transmit
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
+      Buffer   :
+        aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor'Class;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean);
 
    procedure Receive
      (Self     : in out USART_Controller'Class;
-      Buffer   : aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor;
+      Buffer   :
+        aliased in out A0B.Asynchronous_Operations.Transfer_Descriptor'Class;
       Finished : A0B.Callbacks.Callback;
       Success  : in out Boolean);
 
@@ -85,9 +87,11 @@ private
    type USART_Controller
      (Peripheral : not null access A0B.Peripherals.USART.USART_Registers)
    is abstract tagged limited record
-      Transmit_Buffer   : access A0B.Asynchronous_Operations.Transfer_Descriptor;
+      Transmit_Buffer   :
+        access A0B.Asynchronous_Operations.Transfer_Descriptor'Class;
       Transmit_Callback : A0B.Callbacks.Callback;
-      Receive_Buffer    : access A0B.Asynchronous_Operations.Transfer_Descriptor;
+      Receive_Buffer    :
+        access A0B.Asynchronous_Operations.Transfer_Descriptor'Class;
       Receive_Callback  : A0B.Callbacks.Callback;
    end record;
 
