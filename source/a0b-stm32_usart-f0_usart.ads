@@ -18,7 +18,8 @@ with A0B.Types;
 generic
    type DMA_Data_Item_Length is private;
 
-   Byte_Length : DMA_Data_Item_Length;
+   Byte_Data_Item : DMA_Data_Item_Length;
+   Word_Data_Item : DMA_Data_Item_Length;
 
    type DMA_Channel (<>) is abstract tagged limited private;
 

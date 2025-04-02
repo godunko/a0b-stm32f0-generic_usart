@@ -4,9 +4,15 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 --
 
+with A0B.Callbacks.Generic_Non_Dispatching;
+
 package body A0B.STM32_USART.F0_USART is
 
    use type A0B.Types.Unsigned_32;
+
+   package On_Interrupt_Callbacks is
+     new A0B.Callbacks.Generic_Non_Dispatching
+           (USART_Controller, On_Interrupt);
 
    ------------
    -- Enable --
@@ -195,6 +201,25 @@ package body A0B.STM32_USART.F0_USART is
       --  XXX USART_GTPR
       --  XXX USART_RTOR
 
+      --  Initialize and configure DMA
+
+      Self.Receive_Channel.Initialize;
+      Self.Receive_Channel.Configure_Peripheral_To_Memory
+        (Peripheral_Address   => Self.Peripheral.USART_RDR'Address,
+         Peripheral_Data_Size => Word_Data_Item,
+         Memory_Data_Size     => Byte_Data_Item);
+      Self.Receive_Channel.Enable_Transfer_Completed_Interrupt;
+      Self.Receive_Channel.Set_Transfer_Completed_Callback
+        (On_Interrupt_Callbacks.Create_Callback (Self));
+
+      Self.Transmit_Channel.Initialize;
+      Self.Transmit_Channel.Configure_Memory_To_Peripheral
+        (Peripheral_Address   => Self.Peripheral.USART_TDR'Address,
+         Peripheral_Data_Size => Word_Data_Item,
+         Memory_Data_Size     => Byte_Data_Item);
+      Self.Transmit_Channel.Enable_Transfer_Completed_Interrupt;
+      Self.Transmit_Channel.Set_Transfer_Completed_Callback
+        (On_Interrupt_Callbacks.Create_Callback (Self));
    end Initialize_F0;
 
    ------------------
