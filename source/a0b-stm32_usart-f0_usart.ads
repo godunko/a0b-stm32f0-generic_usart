@@ -15,6 +15,53 @@ with A0B.Callbacks;
 with A0B.Peripherals.USART;
 with A0B.Types;
 
+generic
+   type DMA_Data_Item_Length is private;
+
+   Byte_Length : DMA_Data_Item_Length;
+
+   type DMA_Channel (<>) is abstract tagged limited private;
+
+   with procedure Initialize (Channel : in out DMA_Channel'Class);
+
+   with procedure Configure_Peripheral_To_Memory
+     (Channel              : in out DMA_Channel'Class;
+      Peripheral_Address   : System.Address;
+      Peripheral_Data_Size : DMA_Data_Item_Length;
+      Memory_Data_Size     : DMA_Data_Item_Length);
+
+   with procedure Configure_Memory_To_Peripheral
+     (Channel              : in out DMA_Channel'Class;
+      Peripheral_Address   : System.Address;
+      Peripheral_Data_Size : DMA_Data_Item_Length;
+      Memory_Data_Size     : DMA_Data_Item_Length);
+
+   with procedure Set_Transfer_Completed_Callback
+     (Channel  : in out DMA_Channel'Class;
+      Callback : A0B.Callbacks.Callback);
+
+   with procedure Set_Memory
+     (Channel         : in out DMA_Channel'Class;
+      Memory_Address  : System.Address;
+      Number_Of_Items : A0B.Types.Unsigned_16);
+
+   with procedure Enable (Channel : in out DMA_Channel'Class);
+
+   with procedure Disable (Channel : in out DMA_Channel'Class);
+
+   with function Is_Enabled (Channel : DMA_Channel'Class) return Boolean;
+
+   with function Get_Number_Of_Data_Items
+     (Channel : DMA_Channel'Class) return A0B.Types.Unsigned_16;
+
+   with procedure Enable_Transfer_Completed_Interrupt
+     (Channel : in out DMA_Channel'Class);
+
+--     procedure Disable_Transfer_Completed (Self : in out DMA_Channel'Class);
+
+   with function Get_Masked_And_Clear_Transfer_Completed
+     (Channel : in out DMA_Channel'Class) return Boolean;
+
 package A0B.STM32_USART.F0_USART
   with Preelaborate
 is
@@ -33,7 +80,9 @@ is
    end record;
 
    type USART_Controller
-     (Peripheral : not null access A0B.Peripherals.USART.USART_Registers)
+     (Peripheral       : not null access A0B.Peripherals.USART.USART_Registers;
+      Receive_Channel  : not null access DMA_Channel'Class;
+      Transmit_Channel : not null access DMA_Channel'Class)
    is abstract tagged limited private with Preelaborable_Initialization;
 
    procedure Enable (Self : in out USART_Controller'Class);
@@ -85,7 +134,9 @@ is
 private
 
    type USART_Controller
-     (Peripheral : not null access A0B.Peripherals.USART.USART_Registers)
+     (Peripheral       : not null access A0B.Peripherals.USART.USART_Registers;
+      Receive_Channel  : not null access DMA_Channel'Class;
+      Transmit_Channel : not null access DMA_Channel'Class)
    is abstract tagged limited record
       Transmit_Buffer   :
         access A0B.Asynchronous_Operations.Transfer_Descriptor'Class;
