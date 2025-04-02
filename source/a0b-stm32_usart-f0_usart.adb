@@ -214,12 +214,14 @@ package body A0B.STM32_USART.F0_USART is
       procedure Complete_DMA_Receive is
       begin
          Self.Receive_Buffer.Transferred :=
-           Self.Receive_Buffer.Length - Self.Get_DMA_Remain_Receive;
+           Self.Receive_Buffer.Length
+             - A0B.Types.Unsigned_32
+                (Self.Receive_Channel.Get_Number_Of_Data_Items);
          Self.Receive_Buffer.State := A0B.Asynchronous_Operations.Success;
          Self.Receive_Buffer := null;
 
          Self.Peripheral.USART_CR3.DMAR := False;
-         Self.Complete_DMA_Receive;
+         Self.Receive_Channel.Disable;
 
          A0B.Callbacks.Emit_Once (Self.Receive_Callback);
       end Complete_DMA_Receive;
@@ -231,13 +233,13 @@ package body A0B.STM32_USART.F0_USART is
       Miss : Boolean := True;
 
    begin
-      if Self.Is_DMA_Receive_Completed then
+      if Self.Receive_Channel.Get_Masked_And_Clear_Transfer_Completed then
          Complete_DMA_Receive;
 
          Miss := False;
       end if;
 
-      if Self.Is_DMA_Transmit_Completed then
+      if Self.Transmit_Channel.Get_Masked_And_Clear_Transfer_Completed then
          --  Transmit DMA transfer completed, update amount of sent data in
          --  transmit buffer.
 
@@ -246,7 +248,7 @@ package body A0B.STM32_USART.F0_USART is
          --  Shutdown DMA for transmit
 
          Self.Peripheral.USART_CR3.DMAT := False;
-         Self.Complete_DMA_Transmit;
+         Self.Transmit_Channel.Disable;
 
          Miss := False;
       end if;
@@ -279,8 +281,11 @@ package body A0B.STM32_USART.F0_USART is
             --  Initiate DMA transfer for longer trasfer.
 
             Self.Peripheral.USART_CR3.DMAR := True;
-            Self.Initiate_DMA_Receive
-              (Self.Receive_Buffer.Buffer, Self.Receive_Buffer.Length);
+            Self.Receive_Channel.Set_Memory
+              (Memory_Address  => Self.Receive_Buffer.Buffer,
+               Number_Of_Items =>
+                 A0B.Types.Unsigned_16 (Self.Receive_Buffer.Length));
+            Self.Receive_Channel.Enable;
          end if;
 
          Miss := False;
@@ -290,7 +295,7 @@ package body A0B.STM32_USART.F0_USART is
          Self.Peripheral.USART_ICR := (IDLECF => True, others => <>);
 
          if Self.Receive_Buffer /= null
-           and Self.Is_DMA_Receive_Enabled
+           and Self.Receive_Channel.Is_Enabled
          then
             Complete_DMA_Receive;
          end if;
@@ -304,8 +309,11 @@ package body A0B.STM32_USART.F0_USART is
          --  Initiate DMA transfer
 
          Self.Peripheral.USART_CR3.DMAT := True;
-         Self.Initiate_DMA_Transmit
-           (Self.Transmit_Buffer.Buffer, Self.Transmit_Buffer.Length);
+         Self.Transmit_Channel.Set_Memory
+           (Memory_Address  => Self.Transmit_Buffer.Buffer,
+            Number_Of_Items =>
+              A0B.Types.Unsigned_16 (Self.Transmit_Buffer.Length));
+         Self.Transmit_Channel.Enable;
 
          Miss := False;
       end if;

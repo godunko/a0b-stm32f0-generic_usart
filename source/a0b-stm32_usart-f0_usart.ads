@@ -103,34 +103,6 @@ is
 
    procedure On_Interrupt (Self : in out USART_Controller'Class);
 
-   not overriding procedure Initiate_DMA_Transmit
-     (Self   : in out USART_Controller;
-      Buffer : System.Address;
-      Length : A0B.Types.Unsigned_32) is abstract;
-
-   not overriding function Is_DMA_Transmit_Completed
-     (Self : in out USART_Controller) return Boolean is abstract;
-
-   not overriding procedure Complete_DMA_Transmit
-     (Self : in out USART_Controller) is abstract;
-
-   not overriding procedure Initiate_DMA_Receive
-     (Self   : in out USART_Controller;
-      Buffer : System.Address;
-      Length : A0B.Types.Unsigned_32) is abstract;
-
-   not overriding procedure Complete_DMA_Receive
-     (Self : in out USART_Controller) is abstract;
-
-   not overriding function Is_DMA_Receive_Enabled
-     (Self : in out USART_Controller) return Boolean is abstract;
-
-   not overriding function Is_DMA_Receive_Completed
-     (Self : in out USART_Controller) return Boolean is abstract;
-
-   not overriding function Get_DMA_Remain_Receive
-     (Self : in out USART_Controller) return A0B.Types.Unsigned_32 is abstract;
-
 private
 
    type USART_Controller
