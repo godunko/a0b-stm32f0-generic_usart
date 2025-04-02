@@ -4,7 +4,7 @@
 --  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 --
 
-package body A0B.STM32_USART.Generic_USART is
+package body A0B.STM32_USART.F0_USART is
 
    use type A0B.Types.Unsigned_32;
 
@@ -431,4 +431,4 @@ package body A0B.STM32_USART.Generic_USART is
       end if;
    end Transmit;
 
-end A0B.STM32_USART.Generic_USART;
+end A0B.STM32_USART.F0_USART;

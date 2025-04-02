@@ -15,8 +15,8 @@ with A0B.Callbacks;
 with A0B.Peripherals.USART;
 with A0B.Types;
 
-package A0B.STM32_USART.Generic_USART
-  with Pure
+package A0B.STM32_USART.F0_USART
+  with Preelaborate
 is
 
    type UART_Parity is (None, Even, Odd);
@@ -99,4 +99,4 @@ private
      (Self          : in out USART_Controller'Class;
       Configuration : UART_Configuration'Class);
 
-end A0B.STM32_USART.Generic_USART;
+end A0B.STM32_USART.F0_USART;
