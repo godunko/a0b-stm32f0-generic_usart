@@ -16,10 +16,14 @@ with A0B.Peripherals.USART;
 with A0B.Types;
 
 generic
-   type DMA_Data_Item_Length is private;
+   type DMA_Data_Item is private;
 
-   Byte_Data_Item : DMA_Data_Item_Length;
-   Word_Data_Item : DMA_Data_Item_Length;
+   Byte : DMA_Data_Item;
+   Word : DMA_Data_Item;
+
+   type DMA_Priority_Level is private;
+
+   Low : DMA_Priority_Level;  --  ??? Temporary
 
    type DMA_Channel (<>) is abstract tagged limited private;
 
@@ -27,15 +31,17 @@ generic
 
    with procedure Configure_Peripheral_To_Memory
      (Channel              : in out DMA_Channel'Class;
+      Priority             : DMA_Priority_Level;
       Peripheral_Address   : System.Address;
-      Peripheral_Data_Size : DMA_Data_Item_Length;
-      Memory_Data_Size     : DMA_Data_Item_Length);
+      Peripheral_Data_Size : DMA_Data_Item;
+      Memory_Data_Size     : DMA_Data_Item);
 
    with procedure Configure_Memory_To_Peripheral
      (Channel              : in out DMA_Channel'Class;
+      Priority             : DMA_Priority_Level;
       Peripheral_Address   : System.Address;
-      Peripheral_Data_Size : DMA_Data_Item_Length;
-      Memory_Data_Size     : DMA_Data_Item_Length);
+      Peripheral_Data_Size : DMA_Data_Item;
+      Memory_Data_Size     : DMA_Data_Item);
 
    with procedure Set_Transfer_Completed_Callback
      (Channel  : in out DMA_Channel'Class;

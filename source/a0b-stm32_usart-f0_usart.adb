@@ -205,18 +205,20 @@ package body A0B.STM32_USART.F0_USART is
 
       Self.Receive_Channel.Initialize;
       Self.Receive_Channel.Configure_Peripheral_To_Memory
-        (Peripheral_Address   => Self.Peripheral.USART_RDR'Address,
-         Peripheral_Data_Size => Word_Data_Item,
-         Memory_Data_Size     => Byte_Data_Item);
+        (Priority             => Low,
+         Peripheral_Address   => Self.Peripheral.USART_RDR'Address,
+         Peripheral_Data_Size => Word,
+         Memory_Data_Size     => Byte);
       Self.Receive_Channel.Enable_Transfer_Completed_Interrupt;
       Self.Receive_Channel.Set_Transfer_Completed_Callback
         (On_Interrupt_Callbacks.Create_Callback (Self));
 
       Self.Transmit_Channel.Initialize;
       Self.Transmit_Channel.Configure_Memory_To_Peripheral
-        (Peripheral_Address   => Self.Peripheral.USART_TDR'Address,
-         Peripheral_Data_Size => Word_Data_Item,
-         Memory_Data_Size     => Byte_Data_Item);
+        (Priority             => Low,
+         Peripheral_Address   => Self.Peripheral.USART_TDR'Address,
+         Peripheral_Data_Size => Word,
+         Memory_Data_Size     => Byte);
       Self.Transmit_Channel.Enable_Transfer_Completed_Interrupt;
       Self.Transmit_Channel.Set_Transfer_Completed_Callback
         (On_Interrupt_Callbacks.Create_Callback (Self));
