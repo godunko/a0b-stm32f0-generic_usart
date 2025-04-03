@@ -6,7 +6,7 @@
 
 with A0B.Callbacks.Generic_Non_Dispatching;
 
-package body A0B.STM32_USART.F0_USART is
+package body A0B.STM32_USART.Generic_F0_USARTs is
 
    use type A0B.Types.Unsigned_32;
 
@@ -466,4 +466,4 @@ package body A0B.STM32_USART.F0_USART is
       end if;
    end Transmit;
 
-end A0B.STM32_USART.F0_USART;
+end A0B.STM32_USART.Generic_F0_USARTs;

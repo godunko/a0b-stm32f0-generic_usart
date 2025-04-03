@@ -69,7 +69,7 @@ generic
    with function Get_Masked_And_Clear_Transfer_Completed
      (Channel : in out DMA_Channel'Class) return Boolean;
 
-package A0B.STM32_USART.F0_USART
+package A0B.STM32_USART.Generic_F0_USARTs
   with Preelaborate
 is
 
@@ -129,4 +129,4 @@ private
      (Self          : in out USART_Controller'Class;
       Configuration : UART_Configuration'Class);
 
-end A0B.STM32_USART.F0_USART;
+end A0B.STM32_USART.Generic_F0_USARTs;
